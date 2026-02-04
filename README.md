@@ -35,11 +35,21 @@ spawn-at-startup "niri-float-sticky"
 Usage of niri-float-sticky:
   -allow-moving-to-foreign-monitors
         allow moving to foreign monitors
+  -app-id value
+        only move floating windows with app-id matching given patterns
   -debug
         enable debug logging
+  -title value
+        only move floating windows with title matching this pattern
   -version
         print version and exit
 ```
+
+Notes:
+
+- `-app-id` and `-title` can be provided multiple times to specify different patterns.
+- Each flag accepts regex, so you can also provide multiple patterns in one flag (e.g. `foo|bar`).
+- Internally all patterns are combined into a single regex with alternatives
 
 Example with debug log:
 ```bash

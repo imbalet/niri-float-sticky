@@ -5,16 +5,21 @@ import (
 	"fmt"
 	"os"
 
+	arrayflag "github.com/probeldev/niri-float-sticky/array-flag"
 	nirievents "github.com/probeldev/niri-float-sticky/niri-events"
 	niriwindows "github.com/probeldev/niri-float-sticky/niri-windows"
+	"github.com/probeldev/niri-float-sticky/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
 	var debug, showVersion, allowForeignMonitors bool
+	var appIds, titles arrayflag.ArrayFlag
 	flag.BoolVar(&debug, "debug", false, "enable debug logging")
 	flag.BoolVar(&showVersion, "version", false, "print version and exit")
 	flag.BoolVar(&allowForeignMonitors, "allow-moving-to-foreign-monitors", false, "allow moving to foreign monitors")
+	flag.Var(&appIds, "app-id", "only move floating windows with app-id matching given patterns")
+	flag.Var(&titles, "title", "only move floating windows with title matching this pattern")
 	flag.Parse()
 
 	if showVersion {
@@ -31,6 +36,9 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
+
+	appIDPattern := utils.CombinePatterns(appIds)
+	titlePattern := utils.CombinePatterns(titles)
 
 	floatingWindows := make(map[uint64]struct{})
 	workspacesMonitorMap := make(map[uint64]string)
@@ -64,7 +72,7 @@ func main() {
 			windowsMonitorMap = make(map[uint64]string)
 			log.Debug("Windows to monitor bindings have been reset")
 			for _, win := range e.Event.Windows {
-				if win.IsFloating && win.WorkspaceID != nil {
+				if win.IsFloating && win.WorkspaceID != nil && appIDPattern.MatchString(win.AppID) && titlePattern.MatchString(win.Title) {
 					floatingWindows[win.WindowID] = struct{}{}
 					windowsMonitorMap[win.WindowID] = workspacesMonitorMap[*win.WorkspaceID]
 					logf := log.WithFields(log.Fields{"app_id": win.AppID, "output": windowsMonitorMap[win.WindowID]})
@@ -76,7 +84,7 @@ func main() {
 			delete(floatingWindows, e.Event.WindowID)
 		case *nirievents.WindowOpenedOrChangedEvent:
 			win := e.Event.Window
-			if win.IsFloating && win.WorkspaceID != nil {
+			if win.IsFloating && win.WorkspaceID != nil && appIDPattern.MatchString(win.AppID) && titlePattern.MatchString(win.Title) {
 				floatingWindows[win.WindowID] = struct{}{}
 				windowsMonitorMap[win.WindowID] = workspacesMonitorMap[*win.WorkspaceID]
 				logf := log.WithFields(log.Fields{"app_id": win.AppID, "output": windowsMonitorMap[win.WindowID]})
