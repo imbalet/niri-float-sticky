@@ -3,20 +3,21 @@ package windows
 type WindowsManager struct {
 	floatingWindows map[uint64]struct{}
 	manualOverride  map[uint64]bool
+	autoStick       bool
 }
 
-func NewWindowsManager() *WindowsManager {
+func NewWindowsManager(autoStick bool) *WindowsManager {
 	return &WindowsManager{
 		floatingWindows: make(map[uint64]struct{}),
 		manualOverride:  make(map[uint64]bool),
+		autoStick:       autoStick,
 	}
 }
 
 func (wm *WindowsManager) GetSticky() []uint64 {
 	res := make([]uint64, 0, len(wm.floatingWindows))
 	for winId := range wm.floatingWindows {
-		sticky, ok := wm.manualOverride[winId]
-		if !ok || sticky {
+		if wm.IsSticky(winId) {
 			res = append(res, winId)
 		}
 	}
@@ -28,7 +29,10 @@ func (wm *WindowsManager) IsSticky(id uint64) bool {
 		return v
 	}
 	_, auto := wm.floatingWindows[id]
-	return auto
+	if auto && wm.autoStick {
+		return true
+	}
+	return false
 }
 
 func (wm *WindowsManager) SetFloating(id uint64) {

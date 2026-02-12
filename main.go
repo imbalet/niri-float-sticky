@@ -45,16 +45,19 @@ func sendCommand(ipcCmd string) error {
 }
 
 func main() {
-	var debug, showVersion, allowForeignMonitors bool
+	var debug, showVersion, allowForeignMonitors, disableAutoStick bool
 	var appIds, titles arrayflag.ArrayFlag
 	var ipcCmd string
 	flag.StringVar(&ipcCmd, "ipc", "", "send IPC command to daemon: set_sticky, unset_sticky, toggle_sticky")
+	flag.BoolVar(&disableAutoStick, "disable-auto-stick", false, "disable auto sticking for all windows")
 	flag.BoolVar(&debug, "debug", false, "enable debug logging")
 	flag.BoolVar(&showVersion, "version", false, "print version and exit")
 	flag.BoolVar(&allowForeignMonitors, "allow-moving-to-foreign-monitors", false, "allow moving to foreign monitors")
 	flag.Var(&appIds, "app-id", "only move floating windows with app-id matching given patterns")
 	flag.Var(&titles, "title", "only move floating windows with title matching this pattern")
 	flag.Parse()
+
+	autoStickEnabled := !disableAutoStick
 
 	if showVersion {
 		fmt.Println(version)
@@ -86,7 +89,7 @@ func main() {
 	workspacesMonitorMap := make(map[uint64]string)
 	windowsMonitorMap := make(map[uint64]string)
 
-	windowsMgr := windows.NewWindowsManager()
+	windowsMgr := windows.NewWindowsManager(autoStickEnabled)
 	cmdChan := make(chan ipc.Command)
 	ipc.StartIPC(cmdChan)
 
