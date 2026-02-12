@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	arrayflag "github.com/probeldev/niri-float-sticky/array-flag"
 	"github.com/probeldev/niri-float-sticky/ipc"
@@ -89,9 +92,15 @@ func main() {
 	workspacesMonitorMap := make(map[uint64]string)
 	windowsMonitorMap := make(map[uint64]string)
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	windowsMgr := windows.NewWindowsManager(autoStickEnabled)
 	cmdChan := make(chan ipc.Command)
-	ipc.StartIPC(cmdChan)
+	err = ipc.StartIPC(ctx, cmdChan)
+	if err != nil {
+		log.Fatalf("error to start ipc: %v", err)
+	}
 
 	for {
 		select {
@@ -157,6 +166,9 @@ func main() {
 			}
 			isSticky := windowsMgr.IsSticky(cmd.WindowID)
 			log.Infof("Window %d sticky state changed. Is sticky now: %v", cmd.WindowID, isSticky)
+		case <-ctx.Done():
+			log.Info("shutdown")
+			return
 		}
 	}
 }

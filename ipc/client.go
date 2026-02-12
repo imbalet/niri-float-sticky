@@ -7,7 +7,11 @@ import (
 )
 
 func SendRequest(c Command) error {
-	conn, err := net.Dial("unix", SocketPath())
+	socketPath, err := SocketPath()
+	if err != nil {
+		return err
+	}
+	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
 		return err
 	}
